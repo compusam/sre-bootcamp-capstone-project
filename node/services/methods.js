@@ -1,14 +1,13 @@
-const jwt = require('jsonwebtoken');
+import jwt from 'jsonwebtoken';
 import db from '../connections/mysqldb';
 const crypto = require("crypto");
-const netmask = require("netmask");
 const secretJWT = process.env.JWT_KEY;
 
 
 /* This database data is here just for you to test, please, remember to define your own DB
 # You can test with username = admin, password = secret  
 # This DB has already a best practice: a salt value to store the passwords*/
-export const loginUser = async (username, userpassword) => {   
+export const loginUser = async (username, userpassword) =>{   
 
     try {
         const dataUserResult = await db.query(
@@ -66,14 +65,10 @@ export const userIsAutenticated = (authorizationHeader) => {
 
 export const convertBetweenCidMask = (cidmaskdatainput, cidtomask = true) => {
  
-  if(cidtomask){
-    return cidrToMaskFunction(cidmaskdatainput);
-  }
-  else{
-    return maskToCidrFunction(cidmaskdatainput);
-  }
+  let responseDataConverted = cidtomask ? cidrToMaskFunction(cidmaskdatainput) : maskToCidrFunction(cidmaskdatainput);
+  return responseDataConverted;
 }
-//cidrtomask
+
 export const cidrToMaskFunction = (cidmaskdatainput) => {    
 
     let bitcount = parseInt(cidmaskdatainput);
@@ -87,17 +82,17 @@ export const cidrToMaskFunction = (cidmaskdatainput) => {
       bitcount -= n;
     }
     mask = mask.join('.');
-  
-    //console.log(mask);
     return {
       "function": "cidrToMask",
       "input" : cidmaskdatainput,
       "output": mask
     }
 }
-//masktocidr
+
 export const maskToCidrFunction = (cidmaskdatainput) => {
-    //console.log(value);  
+    if (!ipv4ValidationFunction(cidmaskdatainput)) {
+      return 'Not a IPV4!';
+    } 
     var maskNodes = cidmaskdatainput.match(/(\d+)/g);
     var cidr = 0;
     for(var i in maskNodes)
@@ -110,9 +105,9 @@ export const maskToCidrFunction = (cidmaskdatainput) => {
       "output": cidr
     }
 }
-//ipv4validation
+
 export const ipv4ValidationFunction = (ipToValidate) => {
-    //console.log(value);
+  
     let regularExpressionForValidateIP =  /^(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$/;
 
       if (ipToValidate.match(regularExpressionForValidateIP))
