@@ -76,7 +76,10 @@ export const convertBetweenCidMask = (cidmaskdatainput, cidtomask = true) => {
 //cidrtomask
 export const cidrToMaskFunction = (cidmaskdatainput) => {    
 
-    let bitcount = cidmaskdatainput;
+    let bitcount = parseInt(cidmaskdatainput);
+    if (isNaN(bitcount)) {
+      return 'Not a Number!';
+    }
     var mask = [], i, n;
     for(i=0; i<4; i++) {
       n = Math.min(bitcount, 8);
@@ -108,8 +111,15 @@ export const maskToCidrFunction = (cidmaskdatainput) => {
     }
 }
 //ipv4validation
-export const ipv4ValidationFunction = (value) => {
-    //console.log(value);   
-    return true;
+export const ipv4ValidationFunction = (ipToValidate) => {
+    //console.log(value);
+    let regularExpressionForValidateIP =  /^(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$/;
+
+      if (ipToValidate.match(regularExpressionForValidateIP))
+        {
+          return true;
+        }
+
+    return false;
 }
 
