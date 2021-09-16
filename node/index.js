@@ -1,5 +1,6 @@
 import Config from 'config';
 import app from './server';
+require('dotenv').config();
 
 let config = Config;
 

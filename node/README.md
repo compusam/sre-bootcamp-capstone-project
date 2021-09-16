@@ -1,4 +1,6 @@
 # Setup
+I have created a setup.sh for automated the next commands
+before you run apply chmod +x to the file
 ### Install dependencies.
 ```bash
 npm install

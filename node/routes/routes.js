@@ -1,58 +1,66 @@
 import * as routes from './routes';
 import * as methods from '../services/methods';
  
+let userHavePermission = false;
+
   export const init = (app) => {
     app.post('/login', routes.login);
+    app.get('/', routes.health);
     app.get('/_health', routes.health);
-    app.get('/cidr-to-mask', routes.cidrToMask);
-    app.get('/mask-to-cidr', routes.maskToCidr);
+    app.post('/mask/:cidr', routes.cidrToMask);
+    app.post('/cidr/:mask', routes.maskToCidr);
   };
-//health
+
   export const health = (req, res, next) => {
     res.send('OK');
     next();
 }      
-  //login
+  
   export const login = async (req, res, next) => {
     let username = req.body.username;   
     let password = req.body.password;   
    
     let response = {    
-      "data": await methods.loginFunction(username, password)   
+      "data": await methods.loginUser(username, password)   
     };
-    //console.log(response)
+    
     res.send(response);   
     next();    
   }     
-//cidrToMaskFunction
+
 export const cidrToMask = (req, res, next) => {
-  let value = req.query.value ? req.query.value : false;
-  if (!value) {
-    res.send(422, 'No value provided' )
-  } else {
-    let response = {
-      "function": "cidrToMask",
-      "input" : value,
-      "output": methods.cidrToMaskFunction(value)
-    };
-    res.send(response);
-    next();
+  userHavePermission = methods.userIsAutenticated(req.headers.authorization);
+  //console.log(`The user have permission? ${userHavePermission}, the TokenAuthorization is: ${tokenAutorization}`);
+  let cidrToConvert = req.params.cidr ? req.params.cidr : false;
+  
+  if(userHavePermission && cidrToConvert){
+
+        let reponseCidrToMask = methods.convertBetweenCidMask(cidrToConvert)
+    
+        
+        res.send(reponseCidrToMask);
+        next();
   }
+  else {
+        res.status(401).send({"data": "You are not allowed access"})
+  }
+  
 
 }
-//maskToCidr
+
 export const maskToCidr = (req, res, next) => {
-  let value = req.query.value ? req.query.value : false;
-  if (!value) {
-    res.send(422, 'No value provided' )
-  } else {
-    let response = {
-      "function": "maskToCidr",
-      "input" : value,
-      "output": methods.maskToCidrFunction(value)   
-    };
-    res.send(response);
+  userHavePermission = methods.userIsAutenticated(req.headers.authorization);
+  let maskToConvert = req.params.mask ? req.params.mask : false;
+
+  if(userHavePermission && maskToConvert){
+
+    let reponseMaskToCidr = methods.convertBetweenCidMask(maskToConvert,false);
+    res.send(reponseMaskToCidr);
     next();
   }
+  else {
+      res.status(401).send({"data": "You are not allowed access"})
+  }
+
 }
   

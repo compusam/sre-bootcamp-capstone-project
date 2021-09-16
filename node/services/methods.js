@@ -1,43 +1,28 @@
 const jwt = require('jsonwebtoken');
-const mysql = require('mysql');
-const util = require('util');
-const crypto = require("crypto")
+import db from '../connections/mysqldb';
+const crypto = require("crypto");
+const netmask = require("netmask");
+const secretJWT = process.env.JWT_KEY;
 
-const hostdb = 'bootcamp-tht.sre.wize.mx';
-const userdb = 'secret';
-const passworddb = 'noPow3r';
-const database = 'bootcamp_tht';
-const secret = 'my2w7wjd7yXF64FIADfJxNs1oupTGAuW'
 
-//health
-export const health = (req, res, next) => {
-    res.send('OK');
-    next();
-}
 /* This database data is here just for you to test, please, remember to define your own DB
 # You can test with username = admin, password = secret  
 # This DB has already a best practice: a salt value to store the passwords*/
-export const loginFunction = async (username, input_password) => {   
-    const db = mysql.createConnection({
-        host: hostdb,
-        user: userdb,
-        password: passworddb,
-        database: database,
-    });
-    db.query = util.promisify(db.query);
+export const loginUser = async (username, userpassword) => {   
+
     try {
-        const results = await db.query(
+        const dataUserResult = await db.query(
           "SELECT username, salt, role,password FROM users WHERE username = ?",
           [ username ]
         );
-        const userobj = results[0];
-        const hashedPassword = crypto.createHash('sha512').update(input_password + userobj.salt).digest('hex');
-        if(!hashedPassword.localeCompare(userobj.password)){
+        const userObject = dataUserResult[0];
+        const hashedPassword = crypto.createHash('sha512').update(userpassword + userObject.salt).digest('hex');
+        if(!hashedPassword.localeCompare(userObject.password)){
           const tokenJWT = jwt.sign(
                     {
-                      role: userobj.role,
+                      role: userObject.role,
                     },
-                    secret,
+                    secretJWT,
                     {
                       noTimestamp: true,
                     });                   
@@ -48,29 +33,79 @@ export const loginFunction = async (username, input_password) => {
         console.error(err)
       }    
 }
+export const extractAutorizationToken = (reqHeaderAutorization) =>{
+      if(reqHeaderAutorization.startsWith("Bearer ")){
+        return reqHeaderAutorization.substring(7, reqHeaderAutorization.length);
+      }
+      else {
+        return null;
+      }
+}
+export const checkUserPermissions = (authorization) => {
 
-export const protectFunction = (authorization) => {
      try {
-       const user = jwt.verify(authorization, secret);    
+       const user = jwt.verify(authorization, secretJWT);    
        if (user) {
-         return "You are under protected data"
+         return true;
        }
-       return null
+       return false;
      } catch (err) {
        console.error("Invalid JWT Token!");
-       return null
+       return false;
      }
 }
 
+export const userIsAutenticated = (authorizationHeader) => {
+  let tokenAutorization = extractAutorizationToken(authorizationHeader);
+  const userHavePermission = checkUserPermissions(tokenAutorization);
+  if (userHavePermission) {
+    return true;
+  }
+  return false;
+}
+
+export const convertBetweenCidMask = (cidmaskdatainput, cidtomask = true) => {
+ 
+  if(cidtomask){
+    return cidrToMaskFunction(cidmaskdatainput);
+  }
+  else{
+    return maskToCidrFunction(cidmaskdatainput);
+  }
+}
 //cidrtomask
-export const cidrToMaskFunction = (value) => {    
-    //console.log(value);
-    return value;  
+export const cidrToMaskFunction = (cidmaskdatainput) => {    
+
+    let bitcount = cidmaskdatainput;
+    var mask = [], i, n;
+    for(i=0; i<4; i++) {
+      n = Math.min(bitcount, 8);
+      mask.push(256 - Math.pow(2, 8-n));
+      bitcount -= n;
+    }
+    mask = mask.join('.');
+  
+    //console.log(mask);
+    return {
+      "function": "cidrToMask",
+      "input" : cidmaskdatainput,
+      "output": mask
+    }
 }
 //masktocidr
-export const maskToCidrFunction = (value) => {
+export const maskToCidrFunction = (cidmaskdatainput) => {
     //console.log(value);  
-    return value;
+    var maskNodes = cidmaskdatainput.match(/(\d+)/g);
+    var cidr = 0;
+    for(var i in maskNodes)
+    {
+      cidr += (((maskNodes[i] >>> 0).toString(2)).match(/1/g) || []).length;
+    }
+    return {
+      "function": "maskToCidr",
+      "input" : cidmaskdatainput,
+      "output": cidr
+    }
 }
 //ipv4validation
 export const ipv4ValidationFunction = (value) => {
